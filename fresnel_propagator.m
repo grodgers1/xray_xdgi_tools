@@ -1,4 +1,4 @@
-function [ I_z, WF_z ] = fresnel_propagator( I0, p0, pixsize, z, lambda, method )
+function [ I_z, WF_z ] = fresnel_propagator( WF0, pixsize, z, lambda, method )
 %fresnel_propagator Gives the wavefront a distance z downstream
 %   I0: initial intensity profile of wavefront
 %   p0: initial phase profile of wavefront
@@ -17,8 +17,7 @@ WF_z = zeros(length(z),length(I0)); % initialize wavefront at position z
 
 % Method 1: real space propagator, convoluted by fft then multiplication
 % with fft of wavefunction
-WF_0 = I0.*exp(1i*p0); % initial complex wavefunction
-fft_WF = fftshift(fft(WF_0)); % fourier transfer for convolution
+fft_WF = fftshift(fft(WF0)); % fourier transfer for convolution
 if method == 1
     for ii = 1:length(z)
         fprintf(['Getting wavefront for step ' num2str(ii) ' of ' num2str(length(z)) '\n'])
@@ -50,7 +49,7 @@ elseif method == 3
     % for ii = 1:length(z)
     %     fprintf(['Getting wavefront for step ' num2str(ii) ' of ' num2str(length(z)) '\n'])
     %     prop = exp(1i*k*z(ii)).*exp(-1i*k*(x.^2)/(2*z(ii)))/(2*pi*z(ii));  % fresnel propagator in real space
-    %     WF_propagated = conv(WF_0,prop); % convolute propagator with initial wavefunction
+    %     WF_propagated = conv(WF0,prop); % convolute propagator with initial wavefunction
     %     WF_propagated = WF_propagated(:); % cut to proper size 
     %     I_z(ii,:) = (abs(WF_propagated)').^2; % get intensity of wavefront at position z
     %     div_factor = mean(I_z(ii,:));
