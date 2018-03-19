@@ -1,7 +1,7 @@
 function [ lambda ] = lambda_from_E( E )
-%UNTITLED2 Gives wavelength [m] from energy [keV]
+%LAMBDA_FROM_E Gives wavelength [m] from energy [eV]
 %   lambda = hc/E
-lambda = 1.239842*10^(-9)./E;
+lambda = 1.239842*10^(-6)./E;
 
 end
 
