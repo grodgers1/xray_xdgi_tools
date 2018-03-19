@@ -17,7 +17,7 @@ repg1 = 20; % repeat g1 so that large z aren't smeared
 z = (0.01:0.01:4)*(7e-06)^2/(4*lambda);
 
 p2 = p1/2; % [m] period of 2nd grating (p1/2 for pi shift)
-z_detector = z(150); % position of detector
+z_detector = 150; % position of detector [index of z array]
 steps = 15;
 periods = 1;
 detector_pixsize = 10e-06;
