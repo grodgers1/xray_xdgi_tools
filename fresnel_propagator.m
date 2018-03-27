@@ -9,11 +9,11 @@ function [ I_z, WF_z ] = fresnel_propagator( WF0, pixsize, z, lambda, method )
 %   1: real space prop and conv with fft. 2: k space prop and conv with fft
 %   3: real space prop and conv with matlab's conv() function (not yet implemented)
 k=2*pi/lambda; % get wavenumber
-sx = length(I0); % size of input wavefunction
+sx = length(WF0); % size of input wavefunction
 x = ((0:sx-1)-(sx-1)/2)*pixsize; % position vector
-norm_factor = mean(I0); % for normalizing intensity of carpet
-I_z = zeros(length(z),length(I0)); % initialize Talbot carpet (intensity profile)
-WF_z = zeros(length(z),length(I0)); % initialize wavefront at position z
+norm_factor = mean(mean(real(WF0))); % for normalizing intensity of carpet
+I_z = zeros(length(z),length(WF0)); % initialize Talbot carpet (intensity profile)
+WF_z = zeros(length(z),length(WF0)); % initialize wavefront at position z
 
 % Method 1: real space propagator, convoluted by fft then multiplication
 % with fft of wavefunction

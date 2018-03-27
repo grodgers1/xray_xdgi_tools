@@ -25,8 +25,10 @@ periods = 1; % How many periods to phase step over?
 % Source details
 E_spectrum = (20:30)*1e+03; % Energies for above intensity spectrum [eV]
 I_spectrum = ones(size(E_spectrum)); % Intensity at energy described by E_spectrum
-% source_size = 2e-06; % FWHM of source [m]
-% d_sg1 = 0.3; % source to g1 distance [m]
+source_size = 2e-06; % FWHM of source [m]
+d_sg1 = 0.294; % source to g1 distance [m]
+
+
 
 %% Computing and visualizing options:
 x_pixels = 2000; % pixels per period for simulation
@@ -56,19 +58,24 @@ WF0 = I_pattern.*exp(1i*p_pattern);
 WF0 = repmat(WF0,reptimes);
 WF0 = WF0(1:length(E_spectrum),:);
 
-% %% Convolute wavefunction with source
-% sz_WF0 = length(WF0);
-% x = -((sz_WF0-1)/2):((sz_WF0-1)/2);
-% source = exp(-(x./source_size).^2); % create gaussian source
-
 %% Running propagator to get wavefunction at a distance z downstream:
 pixsize = p1/x_pixels;
 for e = 1:length(E_spectrum)
-    [I_e_z(:,e),WF_e_z(:,e)] = fresnel_propagator(WF0(:,e), pixsize, z, lambda_from_E(E_spectrum(e)), method);
+    [I_e_z(:,:,e),WF_e_z(:,:,e)] = fresnel_propagator(WF0(:,e), pixsize, z, lambda_from_E(E_spectrum(e)), method);
 end
 
-WF_z = sum(WF_e_z,2); % Sum up wavefunction from various wavelength contributions
-I_z = abs(WF_z); % Find intensity of full wavefunction
+WF_z = sum(WF_e_z,3); % Sum up wavefunction from various wavelength contributions
+I_z = abs(WF_z).^2; % Find intensity of full wavefunction
+
+%% Convoluting with source spot size
+x = -((length(WF0)-1)/2):((length(WF0)-1)/2);
+source = zeros(length(WF0),length(z));
+for dist = 1:length(z)
+source(:,dist) = exp(-(x*d_sg1/(z(dist)*source_size)).^2);
+end
+
+I_zf = ifft(fft(source).*fft(I_z));
+
 
 %% Plotting results
 temp = periods_to_plot*x_pixels;
