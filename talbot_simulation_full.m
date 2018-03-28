@@ -14,7 +14,8 @@ m1 = 'Si'; % First material (e.g. 'Si')
 m2 = 'Au'; % Second material (e.g. 'Au')
 t1 = 6e-06; % thickness of first material [m]
 t2 = 6e-06; % thickness of second material [m]
-z = (0.01:0.01:4)*(7e-06)^2/(4*lambda);
+
+z = (0.01:0.01:4)*(7e-06)^2/(4*lambda_from_E(30000));
 
 % p2 and detector details
 p2 = p1/2; % period of 2nd grating [m] (p1/2 for pi shift)
@@ -23,12 +24,12 @@ steps = 15; % How many phase steps?
 periods = 1; % How many periods to phase step over?
 
 % Source details
-E_spectrum = (20:30)*1e+03; % Energies for above intensity spectrum [eV]
-I_spectrum = ones(size(E_spectrum)); % Intensity at energy described by E_spectrum
+E_spectrum = (20:40)*1e+03; % Energies for above intensity spectrum [eV]
+I_spectrum = exp(-((E_spectrum-30000)/5000).^2); % Intensity at energy described by E_spectrum
 source_size = 2e-06; % FWHM of source [m]
 d_sg1 = 0.294; % source to g1 distance [m]
 
-
+figure, plot(E_spectrum, I_spectrum)
 
 %% Computing and visualizing options:
 x_pixels = 2000; % pixels per period for simulation
@@ -43,29 +44,32 @@ periods_to_plot = 3;
 tmp = round(x_pixels/2);
 I_pattern = zeros(2*tmp, length(E_spectrum));
 for e = 1:length(E_spectrum)
-    lambda = lambda_from_E(E_spectrum(e));
-    k = 2*pi./lambda;
-    delta0 = find_delta(m1, lambda, 'wavelength');
-    delta1 = find_delta(m2, lambda, 'wavelength');
-    beta0 = find_beta(m1, lambda, 'wavelength');
-    beta1 = find_beta(m2, lambda, 'wavelength');
-    I_pattern(:,e) = [exp(-2*k*beta0*t1)*ones(tmp,1)' exp(-2*k*beta1*t2)*ones(tmp,1)'];
+    l = lambda_from_E(E_spectrum(e));
+    k = 2*pi./l;
+    delta0 = get_refindex(m1, l);
+    delta1 = get_refindex(m2, l);
+    beta0 = get_refindex(m1, l);
+    beta1 = get_refindex(m2, l);
+    I_pattern(:,e) = [I_spectrum(e)*exp(-2*k*beta0*t1)*ones(tmp,1)' I_spectrum(e)*exp(-2*k*beta1*t2)*ones(tmp,1)'];
     p_pattern(:,e) = [-k*t1*delta0*ones(tmp,1)' -k*t2*delta1*ones(tmp,1)'];
 end
 
 WF0 = I_pattern.*exp(1i*p_pattern);
 % enlarge wavefront for large grating
 WF0 = repmat(WF0,reptimes);
-WF0 = WF0(1:length(E_spectrum),:);
+WF0 = WF0(:,1:length(E_spectrum));
 
 %% Running propagator to get wavefunction at a distance z downstream:
 pixsize = p1/x_pixels;
+I_e_z = zeros(length(WF0),length(z),length(E_spectrum));
+% WF_e_z = zeros(length(WF0),length(z),length(E_spectrum));
 for e = 1:length(E_spectrum)
-    [I_e_z(:,:,e),WF_e_z(:,:,e)] = fresnel_propagator(WF0(:,e), pixsize, z, lambda_from_E(E_spectrum(e)), method);
+    fprintf(['Energy step ' num2str(e) ' of ' num2str(length(E_spectrum)) '\n'])
+    [I_e_z(:,:,e),~] = fresnel_propagator(WF0(:,e), pixsize, z, lambda_from_E(E_spectrum(e)), method);
 end
 
-WF_z = sum(WF_e_z,3); % Sum up wavefunction from various wavelength contributions
-I_z = abs(WF_z).^2; % Find intensity of full wavefunction
+I_z = sum(I_e_z,3); % Sum up wavefunction from various wavelength contributions
+%I_z = abs(WF_z).^2; % Find intensity of full wavefunction
 
 %% Convoluting with source spot size
 x = -((length(WF0)-1)/2):((length(WF0)-1)/2);
@@ -79,8 +83,11 @@ I_zf = ifft(fft(source).*fft(I_z));
 
 %% Plotting results
 temp = periods_to_plot*x_pixels;
-temp2 = round(size(I_z,2)/2)-round(temp/2);
-figure, imagesc(I_z(:,temp2:(temp2+temp))'), colormap gray
+temp2 = round(size(I_z,1)/2)-round(temp/2);
+figure, imagesc(I_z(temp2:(temp2+temp),:)), colormap gray
+
+        
+
 
 %% Phase stepping:
 [stepping_curve,phase,ac,vis]=phase_stepping(I,pixsize,detector_pixsize,p2,steps,periods);
