@@ -1,19 +1,19 @@
 %% Builds talbot carpet with options for the following:
 % - Any intensity and phase wavefront from g1 (done)
-% - Automatic g1 wavefront from materials descritpion (need to do)
+% - Automatic g1 wavefront from materials descritpion (done)
 % - Gaussian source (need to do)
 % - Cone beam (need to do)
-% - Polychromatic spectrum (need to do)
+% - Polychromatic spectrum (done)
 % - Phase stepping over pattern (done)
 
 %% Geometry and setup parameters:
 
 % g1 details
 p1 = 7e-06; % [m] period of the above mentioned pattern
-m1 = 'Si'; % First material (e.g. 'Si')
-m2 = 'Au'; % Second material (e.g. 'Au')
+m1 = 'Au'; % First material (e.g. 'Si')
+m2 = 'Si'; % Second material (e.g. 'Au')
 t1 = 6e-06; % thickness of first material [m]
-t2 = 6e-06; % thickness of second material [m]
+t2 = 0; % thickness of second material [m]
 
 z = (0.01:0.01:4)*(7e-06)^2/(4*lambda_from_E(30000));
 
@@ -24,12 +24,14 @@ steps = 15; % How many phase steps?
 periods = 1; % How many periods to phase step over?
 
 % Source details
-E_spectrum = (20:40)*1e+03; % Energies for above intensity spectrum [eV]
-I_spectrum = exp(-((E_spectrum-30000)/5000).^2); % Intensity at energy described by E_spectrum
+E_spectrum = (25:0.5:35)*1e+03; % Energies for above intensity spectrum [eV]
+I_spectrum = exp(-((E_spectrum-30000)/4000).^2); % Intensity at energy described by E_spectrum
 source_size = 2e-06; % FWHM of source [m]
 d_sg1 = 0.294; % source to g1 distance [m]
 
 figure, plot(E_spectrum, I_spectrum)
+% E_spectrum = 30000;
+% I_apectrum = 1;
 
 %% Computing and visualizing options:
 x_pixels = 2000; % pixels per period for simulation
@@ -43,6 +45,7 @@ periods_to_plot = 3;
 %% Building initial wavefunction (no more inputs needed)
 tmp = round(x_pixels/2);
 I_pattern = zeros(2*tmp, length(E_spectrum));
+p_pattern = zeros(2*tmp, length(E_spectrum));
 for e = 1:length(E_spectrum)
     l = lambda_from_E(E_spectrum(e));
     k = 2*pi./l;
@@ -68,17 +71,17 @@ for e = 1:length(E_spectrum)
     [I_e_z(:,:,e),~] = fresnel_propagator(WF0(:,e), pixsize, z, lambda_from_E(E_spectrum(e)), method);
 end
 
-I_z = sum(I_e_z,3); % Sum up wavefunction from various wavelength contributions
-%I_z = abs(WF_z).^2; % Find intensity of full wavefunction
+I_z = sum(I_e_z,3);
+clear I_e_z
 
 %% Convoluting with source spot size
-x = -((length(WF0)-1)/2):((length(WF0)-1)/2);
-source = zeros(length(WF0),length(z));
-for dist = 1:length(z)
-source(:,dist) = exp(-(x*d_sg1/(z(dist)*source_size)).^2);
-end
-
-I_zf = ifft(fft(source).*fft(I_z));
+% x = -((length(WF0)-1)/2):((length(WF0)-1)/2);
+% source = zeros(length(WF0),length(z));
+% for dist = 1:length(z)
+% source(:,dist) = exp(-(x*d_sg1/(z(dist)*source_size)).^2);
+% end
+% 
+% I_zf = ifft(fft(source).*fft(I_z));
 
 
 %% Plotting results
@@ -90,7 +93,9 @@ figure, imagesc(I_z(temp2:(temp2+temp),:)), colormap gray
 
 
 %% Phase stepping:
-[stepping_curve,phase,ac,vis]=phase_stepping(I,pixsize,detector_pixsize,p2,steps,periods);
+detector_pixsize = 1;
+steps = 10;
+[stepping_curve,phase,ac,vis]=phase_stepping(I_z(:,400),pixsize,detector_pixsize,p2,steps,periods,1);
 figure, plot(stepping_curve), xlabel('phase step'), ylabel('intensity')
 
 
