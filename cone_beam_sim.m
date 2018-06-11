@@ -1,115 +1,117 @@
+
 clear all
-addpath('/Users/Griffin/Documents/MATLAB/xray_xdgi_tools/tables')
-addpath('/Users/Griffin/Documents/MATLAB/xray_xdgi_tools')
+addpath('./tables/')
+%addpath('/Users/Griffin/Documents/MATLAB/xray_xdgi_tools/tables')
+%addpath('/Users/Griffin/Documents/MATLAB/xray_xdgi_tools')
 
-
+%% Settings
+% % Define first grating
 p1 = 7e-06; % [m] period of the above mentioned pattern
 m1 = 'Au'; % First material (e.g. 'Au')
 m2 = 'Au'; % Second material (e.g. 'Au')
 t1 = 6e-06; % thickness of first material [m]
 t2 = 0; % thickness of second material [m]
 
+% % Define source
+% Size
 source_size = 2e-06; % FWHM of source [m]
+% Location
 d_sg1 = 0.294; % source to g1 distance [m]
+% Spectrum
+source_spectrum = 0;
+E_0 = 30000;
+sig_E = 4000;
+n = 25;
+E_min = 15000;
+E_max = 45000;
+if source_spectrum == 0
+% Gaussian source:
+[E_spectrum,E_x] = EspectrumGauss(E_0, sig_E, n,E_min,E_max);
+figure, plot(E_x, E_spectrum)
+elseif source_spectrum == 1
+% Monochromatic source
+E_x = E_0;
+E_spectrum = 1;
+end
+
+% % Choose propagation distance
 z = 0.001:0.001:0.3; % radius of wavefront curvature[m]
 
+% % Simulation options
 x_pixels = 1000; % pixels per period for simulation
 reptimes = 20; % repeat g1 so that large z aren't smeared
 
-R = d_sg1;
-% Source details
-source_spectrum = 0;
-
-if source_spectrum == 0
-% % Gaussian source:
-E_middle = 30000;
-E_width = 4000;
-E_spectrum = (20:1:40)*1e+03; % Energies for above intensity spectrum [eV]
-I_spectrum = exp(-((E_spectrum-E_middle)/E_width).^2); % Intensity at energy described by E_spectrum
-figure, plot(E_spectrum, I_spectrum)
-elseif source_spectrum == 1
-% % Monochromatic source
-E_spectrum = 30000;
-I_spectrum = 1;
-elseif source_spectrum == 2
-% % Gaussian source:
-E_middle = 35000;
-E_width = 5000;
-E_spectrum = (25:1:45)*1e+03; % Energies for above intensity spectrum [eV]
-I_spectrum = exp(-((E_spectrum-E_middle)/E_width).^2); % Intensity at energy described by E_spectrum
-figure, plot(E_spectrum, I_spectrum)
-end
-
+%% 
 pixsize = p1/x_pixels;
-
 x = (-((x_pixels*reptimes-1)/2):((x_pixels*reptimes-1)/2))*pixsize;
-lambda = lambda_from_E(E_spectrum);
+lambda = lambda_from_E(E_x);
 k = 2*pi./lambda;
 
 N = x_pixels*reptimes;
 dy0 = reptimes.*(p1/N);
 y0 = (-(N/2):(N/2-1)).*dy0;
-du = 1./ (N.*dy0); % [1/m] sampling distance in k-space
+du = 1./ (N.*dy0);
 u  = (-(N/2):(N/2-1)).*du;
 
-g1_pattern = zeros(length(x),length(E_spectrum));
-wf1  = zeros(length(x),length(E_spectrum));
-for e = 1:length(E_spectrum)
-    [delta1,beta1] = get_refindex(m1, E_spectrum(e));
-    [delta2,beta2] = get_refindex(m2, E_spectrum(e));
-    tmp1 = I_spectrum(e)*exp(-1i*(delta1-1i*beta1)*k(e)*t1);
-    tmp2 = I_spectrum(e)*exp(-1i*(delta2-1i*beta2)*k(e)*t2);
+%% Create initial wavefront and grating
+g1_pattern = zeros(length(x),length(E_x));
+wf1  = zeros(length(x),length(E_x));
+for e = 1:length(E_x)
+    [delta1,beta1] = get_refindex(m1, E_x(e));
+    [delta2,beta2] = get_refindex(m2, E_x(e));
+    tmp1 = E_spectrum(e)*exp(-1i*(delta1-1i*beta1)*k(e)*t1);
+    tmp2 = E_spectrum(e)*exp(-1i*(delta2-1i*beta2)*k(e)*t2);
     temp = [tmp1*ones(1,round(x_pixels/2)) tmp2*ones(1,round(x_pixels/2))]';
     temp = repmat(temp,reptimes,1);
     g1_pattern(:,e) = temp;
-    wf1(:,e)  = temp.*(exp( 1i.*k(e).*sqrt(R.^2+x.^2) ))';
+    wf1(:,e)  = temp.*(exp( 1i.*k(e).*sqrt(d_sg1.^2+x.^2) ))';
 end
 
 
-% calculates the itensity of a propagated wave field f along the
-% z-axis. "psi" is the absolute square root of Eq. (8).
-f_wf1  = fftshift(fft(ifftshift(wf1)));           % FFT of wave field
-I = zeros(length(x),length(E_spectrum),length(z));
-I_ps = zeros(length(x),length(E_spectrum),length(z));
+%% Propagate wavefront
+f_wf1  = fftshift(fft(ifftshift(wf1)));           % ft wavefront
+I = zeros(length(x),length(E_x),length(z));
+I_ps = zeros(length(x),length(E_x),length(z));
 for dis = 1:length(z)
     tic
     
-    H   = exp( -1i.*pi.*lambda'.*z(dis).*u.^2); % Fresnel kernel
-    H   = H';
-    C   = exp(1i.*k'.*z(dis))./(2*R);                    % const
-    C   = C./abs(C);                                     % normalized amplitude
-    psi = C' .* fftshift(ifft(ifftshift(f_wf1.*H)));   % convolution
-    psi = abs(psi).^2;                                % intensity
+    f_prop   = exp( -1i.*pi.*lambda'.*z(dis).*u.^2); % ft Fresnel propagator
+    f_prop   = f_prop';
+    norm_factor   = exp(1i.*k'.*z(dis))./(2*d_sg1); % for normalation propagator
+    norm_factor   = norm_factor./abs(norm_factor);
+    p_wf = norm_factor' .* fftshift(ifft(ifftshift(f_wf1.*f_prop))); % convolute prop with wavefront
+    p_I = abs(p_wf).^2; % propagated intensity
+    I_ps(:,:,dis) = p_I; % intensity of point source
+    
+    % take source size into account
+    w   = z(dis) * (source_size/d_sg1); % Consider magnification of source
+    prof_source = exp( -(1/2).* (y0.^2)./ w^2); % gaussian source
+    prof_source = prof_source./sum(prof_source); % normalize
 
-    % calculates the itensity of a propagated wave field f along the
-    % z-axis and taking account of the mutual coherence (principle from
-    % Weitkamp-paper with Gaussian src). implements Eqs. (9) and (10).
-    w   = z(dis) * (source_size/R);
-    sigm_sq  = w^2/(8*log(2)); % FOR FWHM WIDTH?
-    srcgauss = exp( -(1/2).* (y0.^2)./ sigm_sq);
-    srcgauss = srcgauss./sum(srcgauss);               % normalized Gauss
-
-    gam = fftshift(fft(ifftshift(srcgauss)))';         % damping factor
-    Uf  = fftshift(fft(ifftshift(psi)));                % FFT of intensity
-    I(:,:,dis)   = abs(fftshift(ifft(ifftshift(Uf.*gam))));
-    I_ps(:,:,dis) = psi;
+    ft_source = fftshift(fft(ifftshift(prof_source)))'; % ft source for convolution
+    ft_I  = fftshift(fft(ifftshift(p_I))); % ft wavefront intensity for convolution
+    I(:,:,dis)   = abs(fftshift(ifft(ifftshift(ft_I.*ft_source)))); % convolution
     
     toc
 end
-
+% % incoherently sum different energy contributions
 I_full = squeeze(sum(I,2));
 clear I
 I_ps_full = squeeze(sum(I_ps,2)); 
 clear I_ps
 
+%% visualize
 ptp = 2; % periods to plot
 fig_crop = (round(length(x)/2)-(x_pixels*ptp)):(round(length(x)/2)+(x_pixels*ptp));
 figure, imagesc(I_full(fig_crop,:)), colormap gray
+hold on, xticklabels(z(50:50:end)), xlabel('distance [m]')
 figure, imagesc(I_full), colormap gray
+hold on, xticklabels(z(50:50:end)), xlabel('distance [m]')
 figure, imagesc(I_ps_full(fig_crop,:)), colormap gray
+hold on, xticklabels(z(50:50:end)), xlabel('distance [m]')
 %figure, imagesc(squeeze(I(fig_crop, round(end/2),:))), colormap gray
 
-
+%% phase stepping
 p2 = p1;
 steps = 15;
 detector_pixsize = 1;
