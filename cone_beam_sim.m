@@ -1,8 +1,6 @@
 
 clear all
 addpath('./tables/')
-%addpath('/Users/Griffin/Documents/MATLAB/xray_xdgi_tools/tables')
-%addpath('/Users/Griffin/Documents/MATLAB/xray_xdgi_tools')
 
 %% Settings
 % % Define first grating
@@ -18,7 +16,7 @@ source_size = 2e-06; % FWHM of source [m]
 % Location
 d_sg1 = 0.294; % source to g1 distance [m]
 % Spectrum
-source_spectrum = 0;
+source_spectrum = 1;
 E_0 = 30000;
 sig_E = 4000;
 n = 25;
@@ -35,23 +33,24 @@ E_spectrum = 1;
 end
 
 % % Choose propagation distance
-z = 0.001:0.001:0.3; % radius of wavefront curvature[m]
+z = 0.001:0.001:0.3; % propagation distances [m]
 
 % % Simulation options
+spherical_wf = 0; % 1 = spherical wf, 0 = magnification. (if d_sg1 \approx z(end), you get artifacts from spherical (not sure why yet))
 x_pixels = 1000; % pixels per period for simulation
 reptimes = 20; % repeat g1 so that large z aren't smeared
 
 %% 
-pixsize = p1/x_pixels;
-x = (-((x_pixels*reptimes-1)/2):((x_pixels*reptimes-1)/2))*pixsize;
-lambda = lambda_from_E(E_x);
-k = 2*pi./lambda;
+% wavelength and wavenumber of energies
+lambda = lambda_from_E(E_x)';
+k = 2*pi./lambda';
 
+pixsize = p1/x_pixels;
 N = x_pixels*reptimes;
-dy0 = reptimes.*(p1/N);
-y0 = (-(N/2):(N/2-1)).*dy0;
-du = 1./ (N.*dy0);
-u  = (-(N/2):(N/2-1)).*du;
+% real space coordinates
+x = (-(N/2):(N/2-1))*pixsize;
+% fourier space coordinates
+u  = (-(N/2):(N/2-1))./(N*pixsize);
 
 %% Create initial wavefront and grating
 g1_pattern = zeros(length(x),length(E_x));
@@ -64,33 +63,46 @@ for e = 1:length(E_x)
     temp = [tmp1*ones(1,round(x_pixels/2)) tmp2*ones(1,round(x_pixels/2))]';
     temp = repmat(temp,reptimes,1);
     g1_pattern(:,e) = temp;
-    wf1(:,e)  = temp.*(exp( 1i.*k(e).*sqrt(d_sg1.^2+x.^2) ))';
+    if spherical_wf == 1
+        wf1(:,e)  = temp.*(exp( 1i.*k(e).*sqrt(d_sg1.^2+x.^2) ))';
+    elseif spherical_wf == 0
+        wf1(:,e)  = temp;
+    end
 end
 
-
 %% Propagate wavefront
-f_wf1  = fftshift(fft(ifftshift(wf1)));           % ft wavefront
+f_wf1  = fftshift(fft(ifftshift(wf1,1),[],1),1);           % ft wavefront
 I = zeros(length(x),length(E_x),length(z));
 I_ps = zeros(length(x),length(E_x),length(z));
 for dis = 1:length(z)
     tic
     
-    f_prop   = exp( -1i.*pi.*lambda'.*z(dis).*u.^2); % ft Fresnel propagator
-    f_prop   = f_prop';
-    norm_factor   = exp(1i.*k'.*z(dis))./(2*d_sg1); % for normalation propagator
-    norm_factor   = norm_factor./abs(norm_factor);
-    p_wf = norm_factor' .* fftshift(ifft(ifftshift(f_wf1.*f_prop))); % convolute prop with wavefront
+    f_prop = exp(-1i*pi*lambda.*z(dis).*u.^2); % ft Fresnel propagator
+    f_prop = f_prop';
+    norm_factor = exp(1i*k.*z(dis))./(2*d_sg1); % for normalation propagator
+    norm_factor = norm_factor./abs(norm_factor);
+    p_wf = norm_factor.*ifftshift(ifft(f_wf1.*f_prop,[],1),1); % convolute prop with wavefront
     p_I = abs(p_wf).^2; % propagated intensity
-    I_ps(:,:,dis) = p_I; % intensity of point source
-    
+    if spherical_wf == 1
+        %p_I = p_I;
+        % do nothing
+    elseif spherical_wf == 0
+        % magnification
+        M = (d_sg1+z(dis))/d_sg1;
+        x_mag = linspace(x(1),x(end),M*N);
+        p_I = interp1(x',p_I,x_mag','linear');
+        p_I = p_I((round(end/2)-(N/2)):(round(end/2)+(N/2)-1),:);
+    end
+    I_ps(:,:,dis) = p_I;
     % take source size into account
-    w   = z(dis) * (source_size/d_sg1); % Consider magnification of source
-    prof_source = exp( -(1/2).* (y0.^2)./ w^2); % gaussian source
+    w = z(dis)*(source_size/d_sg1); % Consider magnification of source
+    prof_source = exp(-(1/2)*(x.^2)/ w^2)'; % gaussian source
     prof_source = prof_source./sum(prof_source); % normalize
 
-    ft_source = fftshift(fft(ifftshift(prof_source)))'; % ft source for convolution
-    ft_I  = fftshift(fft(ifftshift(p_I))); % ft wavefront intensity for convolution
-    I(:,:,dis)   = abs(fftshift(ifft(ifftshift(ft_I.*ft_source)))); % convolution
+    ft_source = fftshift(fft(prof_source,[],1),1); % ft source for convolution
+    ft_I = fftshift(fft(p_I,[],1),1); % ft wavefront intensity for convolution
+    temp = abs(ifftshift(ifft(ft_I.*ft_source,[],1),1)); % convolution
+    I(:,:,dis) = temp;
     
     toc
 end
@@ -107,9 +119,6 @@ figure, imagesc(I_full(fig_crop,:)), colormap gray
 hold on, xticklabels(z(50:50:end)), xlabel('distance [m]')
 figure, imagesc(I_full), colormap gray
 hold on, xticklabels(z(50:50:end)), xlabel('distance [m]')
-figure, imagesc(I_ps_full(fig_crop,:)), colormap gray
-hold on, xticklabels(z(50:50:end)), xlabel('distance [m]')
-%figure, imagesc(squeeze(I(fig_crop, round(end/2),:))), colormap gray
 
 %% phase stepping
 p2 = p1;
@@ -132,7 +141,6 @@ xlabel('g2 position [m]')
 ylabel('visibility')
 ylim([0 1])
 
-
-
+% % method 2:
 
 
