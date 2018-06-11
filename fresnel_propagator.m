@@ -31,18 +31,17 @@ if method == 1
     end
 % Method 2: fourier space propagator, convoluted by multiplication with fft
 % of wavefunction
-elseif method == 2
+elseif method == 2 %%%%%%%%% NOT WORKING YET
     k_x = 1./x; % reciporical space conjugate to x
     for ii = 1:length(z)
-        fprintf(['Getting wavefront for step ' num2str(ii) ' of ' num2str(length(z)) '\n'])
-        fprop = fftshift(exp(-1i*pi*lambda*z(ii)*(k_x.^2)));  % fresnel propagator in fourier space
-        WF_propagated = ifft(ifftshift(fft_WF.*fprop));  % convolute propagator with initial wavefunction
+        %fprintf(['Getting wavefront for step ' num2str(ii) ' of ' num2str(length(z)) '\n'])
+        fprop = exp(1i*z(ii)*sqrt(k^2-k_x.^2))';  % fresnel propagator in fourier space
+        WF_propagated = ifft(fftshift(fprop.*fft_WF));  % convolute propagator with initial wavefunction
         I_z(ii,:) = (abs(WF_propagated)').^2; % get intensity of wavefront at position z
         div_factor = mean(I_z(ii,:));
         I_z(ii,:) = norm_factor * I_z(ii,:)/div_factor;
         WF_z(ii,:) = WF_propagated; % Wavefunction at position z
     end
-    fprintf('This method may have problems right now')
 elseif method == 3
     % % Method 3: convoltion using matlab's conv() function
     % WF_0 = I0.*exp(1i*p0); % initial complex wavefunction

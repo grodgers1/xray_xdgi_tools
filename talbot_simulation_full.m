@@ -6,12 +6,15 @@
 % - Polychromatic spectrum (done)
 % - Phase stepping over pattern (done)
 
+addpath('/Users/Griffin/Documents/MATLAB/xray_xdgi_tools/tables')
+addpath('/Users/Griffin/Documents/MATLAB/xray_xdgi_tools')
+
 %% Geometry and setup parameters:
 
 % g1 details
 p1 = 7e-06; % [m] period of the above mentioned pattern
 m1 = 'Au'; % First material (e.g. 'Si')
-m2 = 'Si'; % Second material (e.g. 'Au')
+m2 = 'Au'; % Second material (e.g. 'Au')
 t1 = 6e-06; % thickness of first material [m]
 t2 = 0; % thickness of second material [m]
 
@@ -24,14 +27,17 @@ steps = 15; % How many phase steps?
 periods = 1; % How many periods to phase step over?
 
 % Source details
-E_spectrum = (25:0.5:35)*1e+03; % Energies for above intensity spectrum [eV]
-I_spectrum = exp(-((E_spectrum-30000)/4000).^2); % Intensity at energy described by E_spectrum
+% % Gaussian source:
+% E_spectrum = (25:0.5:35)*1e+03; % Energies for above intensity spectrum [eV]
+% I_spectrum = exp(-((E_spectrum-30000)/4000).^2); % Intensity at energy described by E_spectrum
+% figure, plot(E_spectrum, I_spectrum)
+% % Monochromatic source
+E_spectrum = 30000;
+I_spectrum = 1;
+
+% Source size/location
 source_size = 2e-06; % FWHM of source [m]
 d_sg1 = 0.294; % source to g1 distance [m]
-
-figure, plot(E_spectrum, I_spectrum)
-% E_spectrum = 30000;
-% I_apectrum = 1;
 
 %% Computing and visualizing options:
 x_pixels = 2000; % pixels per period for simulation
@@ -46,21 +52,27 @@ periods_to_plot = 3;
 tmp = round(x_pixels/2);
 I_pattern = zeros(2*tmp, length(E_spectrum));
 p_pattern = zeros(2*tmp, length(E_spectrum));
+k = 2*pi./lambda_from_E(E_spectrum);
+
 for e = 1:length(E_spectrum)
-    l = lambda_from_E(E_spectrum(e));
-    k = 2*pi./l;
-    delta0 = get_refindex(m1, l);
-    delta1 = get_refindex(m2, l);
-    beta0 = get_refindex(m1, l);
-    beta1 = get_refindex(m2, l);
-    I_pattern(:,e) = [I_spectrum(e)*exp(-2*k*beta0*t1)*ones(tmp,1)' I_spectrum(e)*exp(-2*k*beta1*t2)*ones(tmp,1)'];
-    p_pattern(:,e) = [-k*t1*delta0*ones(tmp,1)' -k*t2*delta1*ones(tmp,1)'];
+    [delta1,beta1] = get_refindex(m1, E_spectrum(e));
+    [delta2,beta2] = get_refindex(m2, E_spectrum(e));
+    I_pattern(:,e) = [I_spectrum(e)*exp(-2*k*beta1*t1)*ones(tmp,1)' I_spectrum(e)*exp(-2*k*beta2*t2)*ones(tmp,1)'];
+    p_pattern(:,e) = [-k*t1*delta1*ones(tmp,1)' -k*t2*delta2*ones(tmp,1)'];
 end
 
 WF0 = I_pattern.*exp(1i*p_pattern);
 % enlarge wavefront for large grating
 WF0 = repmat(WF0,reptimes);
 WF0 = WF0(:,1:length(E_spectrum));
+
+if plots_on ==1
+    figure, plot(real(WF0(1:x_pixels,:)),'r')
+    hold on
+    plot(imag(WF0(1:x_pixels,:)),'b')
+    plot(abs(WF0(1:x_pixels,:)).^2,'k')
+    legend({'Re{WF}','Im{WF}','Intensity'})
+end
 
 %% Running propagator to get wavefunction at a distance z downstream:
 pixsize = p1/x_pixels;
@@ -72,7 +84,7 @@ for e = 1:length(E_spectrum)
 end
 
 I_z = sum(I_e_z,3);
-clear I_e_z
+%clear I_e_z
 
 %% Convoluting with source spot size
 % x = -((length(WF0)-1)/2):((length(WF0)-1)/2);
