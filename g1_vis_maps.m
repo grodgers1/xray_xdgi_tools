@@ -4,9 +4,45 @@ addpath('./tables/')
 
 %% Settings
 % % Define first grating
-p1_range = (1:0.5:10)*1e-06; % [m] period of the above mentioned pattern
-z = 0.005:0.005:0.3; % propagation distances [m]
-steps = 15;
+p1_range = (1:0.25:10)*1e-06; % [m] period of the above mentioned pattern
+z = 0.0025:0.0025:0.3; % propagation distances [m]
+steps = 15; % phase steps
+m1 = 'Au'; % First material (e.g. 'Au')
+m2 = 'Au'; % Second material (e.g. 'Au')
+t1 = 6e-06; % thickness of first material [m]
+t2 = 0; % thickness of second material [m]
+
+% % Define source
+% Size
+source_size = 2e-06; % FWHM of source [m]
+% Location
+d_sg1 = 0.294; % source to g1 distance [m]
+% Spectrum
+source_spectrum = 0;
+E_0 = 30000;
+sig_E = 4000;
+n = 25;
+E_min = 15000;
+E_max = 45000;
+if source_spectrum == 0
+% Gaussian source:
+[E_spectrum,E_x] = EspectrumGauss(E_0, sig_E, n,E_min,E_max);
+elseif source_spectrum == 1
+% Monochromatic source
+E_x = E_0;
+E_spectrum = 1;
+end
+figure, plot(E_x, E_spectrum, '.-'), xlabel('Energy [eV]')
+ylabel('Intensity'), title('Energy Spectrum')
+
+% % Simulation options
+spherical_wf = 0; % 1 = spherical wf, 0 = magnification. (if d_sg1 \approx z(end), you get artifacts from spherical (not sure why yet))
+x_pixels = 750; % pixels per period for simulation
+reptimes = 15; % repeat g1 so that large z aren't smeared
+
+lambda = lambda_from_E(E_x)';
+k = 2*pi./lambda';
+
 vis_map = zeros(length(z),length(p1_range));
 amp_map = zeros(length(z),length(p1_range));
 vis_map1 = zeros(length(z),length(p1_range));
@@ -16,44 +52,6 @@ for p = 1:length(p1_range)
     
     tic
     p1 = p1_range(p);
-    m1 = 'Au'; % First material (e.g. 'Au')
-    m2 = 'Au'; % Second material (e.g. 'Au')
-    t1 = 6e-06; % thickness of first material [m]
-    t2 = 0; % thickness of second material [m]
-
-    % % Define source
-    % Size
-    source_size = 2e-06; % FWHM of source [m]
-    % Location
-    d_sg1 = 0.294; % source to g1 distance [m]
-    % Spectrum
-    source_spectrum = 0;
-    E_0 = 30000;
-    sig_E = 4000;
-    n = 25;
-    E_min = 15000;
-    E_max = 45000;
-    if source_spectrum == 0
-    % Gaussian source:
-    [E_spectrum,E_x] = EspectrumGauss(E_0, sig_E, n,E_min,E_max);
-    %figure, plot(E_x, E_spectrum)
-    elseif source_spectrum == 1
-    % Monochromatic source
-    E_x = E_0;
-    E_spectrum = 1;
-    end
-
-    % % Choose propagation distance
-    z = 0.005:0.005:0.3; % propagation distances [m]
-
-    % % Simulation options
-    spherical_wf = 0; % 1 = spherical wf, 0 = magnification. (if d_sg1 \approx z(end), you get artifacts from spherical (not sure why yet))
-    x_pixels = 750; % pixels per period for simulation
-    reptimes = 15; % repeat g1 so that large z aren't smeared
-    %% 
-    % wavelength and wavenumber of energies
-    lambda = lambda_from_E(E_x)';
-    k = 2*pi./lambda';
 
     pixsize = p1/x_pixels;
     N = x_pixels*reptimes;
@@ -116,7 +114,7 @@ for p = 1:length(p1_range)
     % % incoherently sum different energy contributions
     I_full = squeeze(sum(I,2));
     clear I
-%     I_ps_full = squeeze(sum(I_ps,2)); 
+%     I_full_ps = squeeze(sum(I_ps,2)); 
 %     clear I_ps
 
     %% phase stepping
@@ -151,9 +149,17 @@ for p = 1:length(p1_range)
     toc
 end
 
+% [PP,ZZ] = meshgrid(p1_range,z); 
+% relative_sensitivity = (ZZ.*vis_map.*sqrt(amp_map))./PP;
 
-[PP,ZZ] = meshgrid(p1_range,z);
 
+D_1 = (p1_range.^2)/(8*lambda_from_E(E_0));
+
+d_1 = D_1.*d_sg1./(d_sg1-D_1);
+d_1(end) = d_1(end-1);
+
+index = find(p1_range == 7e-06);
+d_1(index)
 
 figure, imagesc(vis_map1')
 colorbar
@@ -161,51 +167,11 @@ yticks(5:5:size(vis_map1,2))
 yticklabels(p1_range(5:5:size(vis_map1,2))*1e6)
 xticks(50:50:size(vis_map1,1))
 xticklabels(z(50:50:size(vis_map1,1)))
-xlabel('propagation distance [m]')
+xlabel('inter-grating distance [m]')
 ylabel('p1 [um]')
 title('visibility')
-
-figure, imagesc(amp_map1')
-colorbar
-yticks(5:5:size(amp_map1,2))
-yticklabels(p1_range(5:5:size(amp_map1,2))*1e6)
-xticks(50:50:size(amp_map1,1))
-xticklabels(z(50:50:size(amp_map1,1)))
-xlabel('propagation distance [m]')
-ylabel('p1 [um]')
-title('amplitude')
-
-relative_sensitivity = (ZZ.*vis_map.*sqrt(amp_map))./PP;
-figure, imagesc(relative_sensitivity')
-colorbar
-yticks(5:5:size(amp_map,2))
-yticklabels(p1_range(5:5:size(amp_map,2))*1e6)
-xticks(50:50:size(amp_map,1))
-xticklabels(z(50:50:size(amp_map,1)))
-xlabel('propagation distance [m]')
-ylabel('p1 [um]')
-title('Relative Sensitivity')
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+hold on
+plot(fliplr(D_1)*length(z)/(z(end)-z(1)),fliplr(1:length(p1_range)),'r-')
+plot(fliplr(d_1)*length(z)/(z(end)-z(1)),fliplr(1:length(p1_range)),'r-')
 
 
