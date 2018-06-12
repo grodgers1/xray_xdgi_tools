@@ -4,8 +4,8 @@ addpath('./tables/')
 
 %% Settings
 % % Define first grating
-p1_range = (1:0.25:10)*1e-06; % [m] period of the above mentioned pattern
-z = 0.001:0.001:0.3; % propagation distances [m]
+p1_range = (1:0.5:10)*1e-06; % [m] period of the above mentioned pattern
+z = 0.005:0.005:0.3; % propagation distances [m]
 steps = 15;
 vis_map = zeros(length(z),length(p1_range));
 amp_map = zeros(length(z),length(p1_range));
@@ -44,12 +44,12 @@ for p = 1:length(p1_range)
     end
 
     % % Choose propagation distance
-    z = 0.001:0.001:0.3; % propagation distances [m]
+    z = 0.005:0.005:0.3; % propagation distances [m]
 
     % % Simulation options
     spherical_wf = 0; % 1 = spherical wf, 0 = magnification. (if d_sg1 \approx z(end), you get artifacts from spherical (not sure why yet))
-    x_pixels = 1000; % pixels per period for simulation
-    reptimes = 20; % repeat g1 so that large z aren't smeared
+    x_pixels = 750; % pixels per period for simulation
+    reptimes = 15; % repeat g1 so that large z aren't smeared
     %% 
     % wavelength and wavenumber of energies
     lambda = lambda_from_E(E_x)';
@@ -83,7 +83,7 @@ for p = 1:length(p1_range)
     %% Propagate wavefront
     f_wf1  = fftshift(fft(ifftshift(wf1,1),[],1),1);           % ft wavefront
     I = zeros(length(x),length(E_x),length(z));
-    I_ps = zeros(length(x),length(E_x),length(z));
+%    I_ps = zeros(length(x),length(E_x),length(z));
     for dis = 1:length(z)
 %         tic
         f_prop = exp(-1i*pi*lambda.*z(dis).*u.^2); % ft Fresnel propagator
@@ -102,7 +102,7 @@ for p = 1:length(p1_range)
             p_I = interp1(x',p_I,x_mag','linear');
             p_I = p_I((round(size(p_I,1)/2)-(N/2)):(round(size(p_I,1)/2)+(N/2)-1),:);
         end
-        I_ps(:,:,dis) = p_I;
+%        I_ps(:,:,dis) = p_I;
         % take source size into account
         w = z(dis)*(source_size/d_sg1); % Consider magnification of source
         prof_source = exp(-(1/2)*(x.^2)/ w^2)'; % gaussian source
@@ -116,11 +116,10 @@ for p = 1:length(p1_range)
     % % incoherently sum different energy contributions
     I_full = squeeze(sum(I,2));
     clear I
-    I_ps_full = squeeze(sum(I_ps,2)); 
-    clear I_ps
+%     I_ps_full = squeeze(sum(I_ps,2)); 
+%     clear I_ps
 
     %% phase stepping
-    p2 = p1;
     steps = 15;
     detector_pixsize = 1;
     periods = 2;
@@ -130,14 +129,16 @@ for p = 1:length(p1_range)
     amp1 = zeros(1,length(z));
     curves = zeros(steps,length(z));
     %figure, hold on, xlabel('phase step'), ylabel('intensity')
-    for pos = 1:length(z)
-        [stepping_curve,~,~,~]=phase_stepping(I_full(:,pos),pixsize,detector_pixsize,p2,0.5,steps,periods);
+    for dis = 1:length(z)
+        M = (d_sg1+z(dis))/d_sg1;
+        p2 = p1*M/2;
+        [stepping_curve,~,~,~]=phase_stepping(I_full(:,dis),pixsize,detector_pixsize,p2,0.5,steps,periods);
         ft_sc = fft(stepping_curve);
-        vis(pos) = abs(ft_sc(1+periods))./abs(ft_sc(1));
-        amp(pos) = abs(ft_sc(1));
-        vis1(pos) = (max(stepping_curve)-min(stepping_curve))/(max(stepping_curve)+min(stepping_curve));
-        amp1(pos) = (max(stepping_curve)+min(stepping_curve))/2;
-        curves(:,pos) = stepping_curve;
+        vis(dis) = abs(ft_sc(1+periods))./abs(ft_sc(1));
+        amp(dis) = abs(ft_sc(1));
+        vis1(dis) = (max(stepping_curve)-min(stepping_curve))/(max(stepping_curve)+min(stepping_curve));
+        amp1(dis) = (max(stepping_curve)+min(stepping_curve))/2;
+        curves(:,dis) = stepping_curve;
         %     if mod(pos,10) == 0
     %         plot(stepping_curve, 'o-')
     %     end
@@ -154,22 +155,22 @@ end
 [PP,ZZ] = meshgrid(p1_range,z);
 
 
-figure, imagesc(vis_map')
+figure, imagesc(vis_map1')
 colorbar
-yticks(5:5:size(vis_map,2))
-yticklabels(p1_range(5:5:size(vis_map,2))*1e6)
-xticks(50:50:size(vis_map,1))
-xticklabels(z(50:50:size(vis_map,1)))
+yticks(5:5:size(vis_map1,2))
+yticklabels(p1_range(5:5:size(vis_map1,2))*1e6)
+xticks(50:50:size(vis_map1,1))
+xticklabels(z(50:50:size(vis_map1,1)))
 xlabel('propagation distance [m]')
 ylabel('p1 [um]')
 title('visibility')
 
-figure, imagesc(amp_map')
+figure, imagesc(amp_map1')
 colorbar
-yticks(5:5:size(amp_map,2))
-yticklabels(p1_range(5:5:size(amp_map,2))*1e6)
-xticks(50:50:size(amp_map,1))
-xticklabels(z(50:50:size(amp_map,1)))
+yticks(5:5:size(amp_map1,2))
+yticklabels(p1_range(5:5:size(amp_map1,2))*1e6)
+xticks(50:50:size(amp_map1,1))
+xticklabels(z(50:50:size(amp_map1,1)))
 xlabel('propagation distance [m]')
 ylabel('p1 [um]')
 title('amplitude')

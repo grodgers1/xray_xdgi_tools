@@ -121,13 +121,15 @@ figure, imagesc(I_full), colormap gray
 hold on, xticklabels(z(50:50:end)), xlabel('distance [m]')
 
 %% phase stepping
-p2 = p1;
+%p2 = p1;
 steps = 15;
 detector_pixsize = 1;
 periods = 2;
 vis = zeros(1,length(z));
 %figure, hold on, xlabel('phase step'), ylabel('intensity')
 for pos = 1:length(z)
+    M = (d_sg1+z(pos))/d_sg1;
+    p2 = p1*M/2;
     [stepping_curve,~,~,~]=phase_stepping(I_full(:,pos),pixsize,detector_pixsize,p2,0.5,steps,periods);
     vis(pos) = (max(stepping_curve)-min(stepping_curve))/(max(stepping_curve)+min(stepping_curve));
 %     if mod(pos,10) == 0
