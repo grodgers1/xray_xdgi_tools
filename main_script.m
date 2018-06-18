@@ -17,36 +17,38 @@ t1 = 6e-06; % thickness of first material [m]
 t2 = 0; % thickness of second material [m]
 
 % % Define source
-%source_size = 2e-06; % FWHM of source [m]
-source_size = 0;
-%d_sg1 = 0.294; % source to g1 distance [m]
-d_sg1 = 1.5;
+source_size = 2e-06; % FWHM of source [m]
+d_sg1 = 0.294; % source to g1 distance [m]
+
 % % Define spectrum
-%source_spectrum = 'gaussian';
-source_spectrum = 'monochromatic';
+source_spectrum = 'gaussian';
+%source_spectrum = 'monochromatic';
 E_0 = 30000;
 sig_E = 4000;
 n = 25;
 E_min = 15000;
 E_max = 45000;
-if strcmp(source_spectrum, 'gaussian') == 1 % Gaussian source:
-[E_spectrum,E_x] = EspectrumGauss(E_0, sig_E, n,E_min,E_max);
-else % Monochromatic source
-E_x = E_0;
-E_spectrum = 1;
-end
-figure, plot(E_x, E_spectrum, '.-'), xlabel('Energy [eV]')
-ylabel('Intensity'), title('Energy Spectrum')
 
 % % Simulation options
 %wf_method = 'magnification'
 wf_method = 'spherical wavefront';
 x_pixels = 750; % pixels per period for simulation
 reptimes = 15; % repeat g1 so that large z aren't smeared
+padsize = x_pixels*reptimes;
 
 N = x_pixels*reptimes; 
 lambda = lambda_from_E(E_x)';
 k = 2*pi./lambda';
+
+if strcmp(source_spectrum, 'gaussian') == 1 % Gaussian source:
+[E_spectrum,E_x] = EspectrumGauss(E_0, sig_E, n,E_min,E_max);
+else % Monochromatic source
+E_x = E_0;
+E_spectrum = 1;
+end
+% figure, plot(E_x, E_spectrum, '.-'), xlabel('Energy [eV]')
+% ylabel('Intensity'), title('Energy Spectrum')
+
 
 vis_map = zeros(length(z),length(p1_range));
 amp_map = zeros(length(z),length(p1_range));
@@ -54,16 +56,16 @@ vis_map1 = zeros(length(z),length(p1_range));
 amp_map1 = zeros(length(z),length(p1_range));
 curves_mat = zeros(steps,length(z),length(p1_range));
 carpets_mat = zeros(N,length(z),length(p1_range));
+
+g1_pattern = zeros(N,length(E_x));
+wf1  = zeros(N,length(E_x));
 for p = 1:length(p1_range)   
     tic
     p1 = p1_range(p);
 
     pixsize = p1/x_pixels;
-    x = (-(N/2):(N/2-1))*pixsize; % real space coordinates
-    
-    %% Create initial wavefront and grating
-    g1_pattern = zeros(length(x),length(E_x));
-    wf1  = zeros(length(x),length(E_x));
+    x = (-(N/2):(N/2-1))*pixsize; % real space coordinates    
+    %% Create initial wavefront and grating    
     for e = 1:length(E_x)
         [delta1,beta1] = get_refindex(m1, E_x(e));
         [delta2,beta2] = get_refindex(m2, E_x(e));
@@ -78,9 +80,11 @@ for p = 1:length(p1_range)
             wf1(:,e)  = temp;
         end
     end
-
+    wf1 = padarray(wf1,[padsize 0]);
+    
     %% Propagate wavefront
     I_full = wf_propagate(wf1,z,E_x,pixsize,source_size,d_sg1, 'method','spherical wavefront');
+    I_full = I_full(padsize:(end-padsize-1),:);
     %% phase stepping
     vis = zeros(1,length(z)); amp = zeros(1,length(z));
     curves = zeros(steps,length(z));
@@ -98,9 +102,6 @@ for p = 1:length(p1_range)
     carpets_mat(:,:,p) = I_full;
     toc
 end
-
-% [PP,ZZ] = meshgrid(p1_range,z); 
-% relative_sensitivity = (ZZ.*vis_map.*sqrt(amp_map))./PP;
 
 %% Calculating Talbot distances
 D_1 = (p1_range.^2)/(8*lambda_from_E(E_0));
@@ -130,8 +131,8 @@ xlabel('inter-grating distance [m]')
 ylabel('p1 [um]')
 title('visibility')
 hold on
-plot(fliplr(D_1)*length(z)/(z(end)-z(1)),fliplr(1:length(p1_range)),'r-')
-plot(fliplr(3*D_1)*length(z)/(z(end)-z(1)),fliplr(1:length(p1_range)),'r-')
+%plot(fliplr(D_1)*length(z)/(z(end)-z(1)),fliplr(1:length(p1_range)),'r-')
+%plot(fliplr(3*D_1)*length(z)/(z(end)-z(1)),fliplr(1:length(p1_range)),'r-')
 plot(fliplr(d_1)*length(z)/(z(end)-z(1)),fliplr(1:length(p1_range)),'r-')
 
 figure, imagesc(amp_map')
@@ -155,7 +156,9 @@ xlabel('inter-grating distance [m]')
 ylabel('p1 [um]')
 title('p2 [um]')
 
-
+%% Sensitivity
+[ZZ,PP] = meshgrid(z,p1_range);
+relative_sensitivity = (ZZ.*vis_map.*sqrt(amp_map))./p2_mat;
 
 
 
