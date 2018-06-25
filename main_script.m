@@ -36,9 +36,6 @@ x_pixels = 750; % pixels per period for simulation
 reptimes = 15; % repeat g1 so that large z aren't smeared
 padsize = x_pixels*reptimes;
 
-N = x_pixels*reptimes; 
-lambda = lambda_from_E(E_x)';
-k = 2*pi./lambda';
 
 if strcmp(source_spectrum, 'gaussian') == 1 % Gaussian source:
 [E_spectrum,E_x] = EspectrumGauss(E_0, sig_E, n,E_min,E_max);
@@ -48,6 +45,9 @@ E_spectrum = 1;
 end
 % figure, plot(E_x, E_spectrum, '.-'), xlabel('Energy [eV]')
 % ylabel('Intensity'), title('Energy Spectrum')
+N = x_pixels*reptimes; 
+lambda = lambda_from_E(E_x)';
+k = 2*pi./lambda';
 
 
 vis_map = zeros(length(z),length(p1_range));
@@ -56,7 +56,8 @@ vis_map1 = zeros(length(z),length(p1_range));
 amp_map1 = zeros(length(z),length(p1_range));
 curves_mat = zeros(steps,length(z),length(p1_range));
 carpets_mat = zeros(N,length(z),length(p1_range));
-
+vis = zeros(1,length(z)); amp = zeros(1,length(z));
+curves = zeros(steps,length(z));
 g1_pattern = zeros(N,length(E_x));
 wf1  = zeros(N,length(E_x));
 for p = 1:length(p1_range)   
@@ -66,6 +67,7 @@ for p = 1:length(p1_range)
     pixsize = p1/x_pixels;
     x = (-(N/2):(N/2-1))*pixsize; % real space coordinates    
     %% Create initial wavefront and grating    
+    wf1 = zeros(N,length(E_x));
     for e = 1:length(E_x)
         [delta1,beta1] = get_refindex(m1, E_x(e));
         [delta2,beta2] = get_refindex(m2, E_x(e));
@@ -86,8 +88,7 @@ for p = 1:length(p1_range)
     I_full = wf_propagate(wf1,z,E_x,pixsize,source_size,d_sg1, 'method','spherical wavefront');
     I_full = I_full(padsize:(end-padsize-1),:);
     %% phase stepping
-    vis = zeros(1,length(z)); amp = zeros(1,length(z));
-    curves = zeros(steps,length(z));
+
     for dis = 1:length(z)
         M = (d_sg1+z(dis))/d_sg1;
         p2 = p1*M/2;
