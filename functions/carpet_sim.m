@@ -1,7 +1,17 @@
 function [vis,carpet,time] = carpet_sim(z,d_sg1,p1,E_x,E_spectrum,m1,t1)
-%UNTITLED4 Summary of this function goes here
-%   Detailed explanation goes here
-
+%CARPET_SIM Simulates talbot carpet from specified parameters
+%   Inputs:
+%           z: talbot distances [m]
+%           d_sg1: source to g1 distance [m]
+%           p1: period of first grating [m]
+%           E_x: energies for energy spectrum [eV]
+%           E_spectrum: intensities of source at energies given by E_x [1]
+%           m1: first material of first grating (i.e. 'Au')
+%           t1: thickness of first material of first grating [m]
+%   Outputs:
+%           vis: visibility for each propagation distance z
+%           carpet: intensity pattern at each distance z
+%           time: how long it takes to run this function
 
 tic
 %% Hardcoded stuff

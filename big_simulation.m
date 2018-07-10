@@ -9,7 +9,6 @@ z_range = (5:1:55)*1e-2;
 %dutycycle_range = 0.3:0.1:0.7;
 
 %%
-
 sensitivity_mat = zeros(length(E_range),length(p1_range),length(t1_range),length(d_sg1_range),length(z_range));
 
 n_sims = numel(sensitivity_mat);
