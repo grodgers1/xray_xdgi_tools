@@ -8,18 +8,6 @@ function [I_z] = wf_propagate_hardcoded(wf0,z,E,dx,width,d_source)
 %        dx: [m] pixel size (sampling rate) of wf0 
 %        width: [m] source size (default is fwhm) 
 %        d_source: [m] distance of source to wf0.
-%               NOTE if parallel beam, set d_source to anything and add
-%               'method','parallel'
-%
-%       Optional inputs:
-%       'method': how to perform propagation
-%           'magnification' (default):
-%           'spherical':
-%           'parallel':
-%       'width': how source size is given
-%           'fwhm': width given as full width at half maximum
-%           'sigma'(default): width given as sigma of gaussian
-%
 % Outputs:
 %       I_z: Intensity of propagated wavefront
 

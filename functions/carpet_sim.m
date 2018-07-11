@@ -1,4 +1,4 @@
-function [vis,carpet,time] = carpet_sim(z,d_sg1,p1,E_x,E_spectrum,m1,t1)
+function [vis,amp,carpet] = carpet_sim(z,d_sg1,p1,E_x,E_spectrum,m1,t1)
 %CARPET_SIM Simulates talbot carpet from specified parameters
 %   Inputs:
 %           z: talbot distances [m]
@@ -11,17 +11,18 @@ function [vis,carpet,time] = carpet_sim(z,d_sg1,p1,E_x,E_spectrum,m1,t1)
 %   Outputs:
 %           vis: visibility for each propagation distance z
 %           carpet: intensity pattern at each distance z
-%           time: how long it takes to run this function
 
-tic
 %% Hardcoded stuff
 x_pixels = 50;
-reptimes = 5;
+% calculate required reptimes
+M = (d_sg1+z)/d_sg1;
+reptimes = ceil(max(M(:)))+1;
+%reptimes = 15;
 t2 = 0;
 m2 = 'Au';
 padsize = round(x_pixels*reptimes/2);
-source_size = 2e-06;
-steps = 15; % phase steps
+source_size = 1.5e-06;
+%steps = 15; % phase steps
 periods = 2;
 % % hardcoded 'spherical wavefront' option for initial wavefront
 % % hardcoded 'spherical wavefront' option for propagation method
@@ -35,7 +36,7 @@ pixsize = p1/x_pixels;
 x = (-(N/2):(N/2-1))*pixsize; % real space coordinates    
 %% initialize
 vis = zeros(1,length(z)); 
-%amp = zeros(1,length(z));
+amp = zeros(1,length(z));
 %curves = zeros(steps,length(z));
 g1_pattern = zeros(N,length(E_x));
 %% Create initial wavefront and grating    
@@ -56,17 +57,15 @@ wf1 = padarray(wf1,[padsize 0]);
 I_full = wf_propagate_hardcoded(wf1,z,E_x,pixsize,source_size,d_sg1);
 I_full = I_full(padsize:(end-padsize-1),:);
 %% Visibility calculation
-M = (d_sg1+z)/d_sg1;
     for dis = 1:length(z)
         psize = M(dis)*x_pixels;
         curve = I_full(round(N/2-psize/2):round(N/2+psize/2),dis);
         ft_curve = fft(curve);
         vis(dis) = 2*abs(ft_curve(1+periods))./abs(ft_curve(1));
-        %amp(dis) = mean(curve);
+        amp(dis) = mean(curve);
         %curves(:,dis) = interp1(1:length(curve),curve,1:length(curve)/steps:length(curve))';
     end
 carpet = I_full;
-time = toc
 
 end
 
