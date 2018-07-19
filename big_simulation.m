@@ -66,6 +66,10 @@ p2_mat(1,1,:,:,:) = permute(M_mat.*tmp,[3 1 2]);
 z_mat(1,1,1,1,:) = z_range;
 %tot_dist(1,1,1,:,:) = d_sg1_range' + z_range;
 
+[ZZ,DD] = meshgrid(z_range,d_sg1_range);
+totdist_mat = ZZ+DD;
+
+
 sensitivity = (pi*z_mat./p2_mat).*vis_mat.*sqrt(counts_mat);
 alpha_min = 1./sensitivity; % units should be [radians]
 
@@ -81,27 +85,32 @@ amin_maps = permute(squeeze(alpha_min(:,t1_6_index,p1_7_index,:,:)),[2 3 1]);
 e_val = 2;
 
 figure, imagesc(z_range, d_sg1_range, vis_maps(:,:,e_val), [0 1]), colorbar
-xlabel('propagation distance [m]')
-ylabel('source - g1 distance [m]')
-title(['Visibility for E = ' num2str(E_range(e_val)/1000) ' keV'])
+xlabel('propagation distance [m]','interpreter','latex')
+ylabel('source - $g_1$ distance [m]','interpreter','latex')
+title(['Visibility for E = ' num2str(E_range(e_val)/1000) ' keV'],'interpreter','latex')
 hold on, plot(z_range,0.6-z_range, 'r-')
 
 figure, imagesc(z_range, d_sg1_range, squeeze(p2_mat(1,1,p1_7_index,:,:)), [7e-6 2.5e-5]), colorbar
-xlabel('propagation distance [m]')
-ylabel('source - g1 distance [m]')
-title(['p2 for E = ' num2str(E_range(e_val)/1000) ' keV'])
+xlabel('propagation distance [m]','interpreter','latex')
+ylabel('source - $g_1$ distance [m]','interpreter','latex')
+title(['$p_2$ for E = ' num2str(E_range(e_val)/1000) ' keV'],'interpreter','latex')
 
 figure, imagesc(z_range, d_sg1_range, sqrt(squeeze(counts_mat(e_val,t1_6_index,p1_7_index,:,:)))), colorbar
-xlabel('propagation distance [m]')
-ylabel('source - g1 distance [m]')
-title(['\sqrt{N} for E = ' num2str(E_range(e_val)/1000) ' keV'])
+xlabel('propagation distance [m]','interpreter','latex')
+ylabel('source - $g_1$ distance [m]','interpreter','latex')
+title(['$\sqrt{N}$ for E = ' num2str(E_range(e_val)/1000) ' keV'],'interpreter','latex')
 
 figure, imagesc(z_range, d_sg1_range, s_maps(:,:,e_val)), colorbar
-xlabel('propagation distance [m]')
-ylabel('source - g1 distance [m]')
-title(['Sensitivity for E = ' num2str(E_range(e_val)/1000) ' keV'])
+xlabel('propagation distance [m]','interpreter','latex')
+ylabel('source - $g_1$ distance [m]','interpreter','latex')
+title(['Sensitivity for E = ' num2str(E_range(e_val)/1000) ' keV'],'interpreter','latex')
 hold on, plot(z_range,0.6-z_range, 'r-')
 
+figure, imagesc(z_range, d_sg1_range, totdist_mat, [0.2 0.65]), colorbar
+xlabel('propagation distance [m]','interpreter','latex')
+ylabel('source - $g_1$ distance [m]','interpreter','latex')
+title(['Source-detector distance [m]'],'interpreter','latex')
+hold on, plot(z_range,0.6-z_range, 'r-')
     
     
     
