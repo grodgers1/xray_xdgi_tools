@@ -1,0 +1,8 @@
+All data retrieved from http://purple.ipmt-hpm.ac.ru/xcalc/xcalc_mysql/ref_index.php
+(Serguei Kuznetsov , IMT RAS, Chernogolovka, Russia.)
+
+Data were then imported to MATLAB and the workspace saved.
+
+Units:
+Energy is in keV
+Wavelength is in Angstroms
