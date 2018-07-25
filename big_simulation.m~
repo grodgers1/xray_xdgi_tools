@@ -4,15 +4,15 @@ addpath('./functions')
 clear all
 clc
 %% Loops over the following:
-m1_range = 1:2;
-materials = {'Au', 'Si'};
-% m1_range = 1;
-% materials = {'Si'};
+% m1_range = 1:2;
+% materials = {'Au', 'Si'};
+m1_range = 1;
+materials = {'Si'};
 E_range = (25:5:40)*1e3;
 p1_range = (3:0.5:9)*1e-6;
-t1_range = (4:2:20)*1e-6;
-t1_range2 = t1_range+20e-6; % for m2
-%t1_range = 40:5:70;
+%t1_range = (4:2:20)*1e-6;
+%t1_range2 = t1_range+20e-6; % for m2
+t1_range = 40:5:70;
 l_range = (20:1:55)*1e-2;
 d_range = (5:1:40)*1e-2;
 dc_range = 0.3:0.2:0.7;
@@ -36,7 +36,7 @@ counts_at_60 = counts_energy_focus1(E_range/1000)/2; % divide by two for the g2
 %% Run simulations
 count = 1;
 for m = 1:length(m1_range)
-    m1 = materials{m};
+    m1 = materials{1};
 for e = 1:length(E_range)
     E_0 = E_range(e);
     % build spectrum
