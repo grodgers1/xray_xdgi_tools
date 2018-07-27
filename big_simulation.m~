@@ -19,6 +19,7 @@ vis_mat = zeros(length(m1_range),length(E_range),length(t1_range),length(p1_rang
 amp_mat = zeros(length(m1_range),length(E_range),length(t1_range),length(p1_range),length(dc_range),length(l_range),length(d_range));
 counts_mat = zeros(length(m1_range),length(E_range),length(t1_range),length(p1_range),length(dc_range),length(l_range),length(d_range));
 
+
 dimension_names = {'Material','E','t1','p1','dc','l','d'};
 n_sims = numel(sensitivity_mat);
 %% hardcoded values
@@ -195,7 +196,7 @@ itry_d = find(abs(d_range-try_d) == min(abs(d_range-try_d)),1);
 
 try_snr = rel_snr_alpha(itry_m1,itry_E,itry_t1,itry_p1,itry_dc,itry_l,itry_d);
 
-fprintf(['Test setup: \n'])
+fprintf(['The setup: \n'])
 fprintf(['E = ' num2str(E_range(itry_E)) '\n'])
 fprintf(['t1 = ' num2str(t1_range(itry_t1)) '\n'])
 fprintf(['p1 = ' num2str(p1_range(itry_p1)) '\n'])
