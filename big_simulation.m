@@ -203,21 +203,44 @@ fprintf(['dc = ' num2str(dc_range(itry_dc)) '\n'])
 fprintf(['l = ' num2str(l_range(itry_l)) '\n'])
 fprintf(['d = ' num2str(d_range(itry_d)) '\n'])
 fprintf(['SNR improvement:' num2str(try_snr) '\n'])
+%% Get carpets for setups
+sim_d_range = (5:0.1:30)*1e-2;
+inewcurr_d = find(abs(sim_d_range-curr_d) == min(abs(sim_d_range-curr_d)),1);
+inewmax_d = find(abs(sim_d_range-d_range(imax_d)) == min(abs(sim_d_range-d_range(imax_d))),1);
 
 
+[E_spectrum,E_x] = EspectrumGauss(E_range(icurr_E), sig_E, n,E_range(icurr_E)-3*sig_E,E_range(icurr_E)+3*sig_E);
+[vis_curr,amp_curr,carpet_curr] = carpet_sim(sim_d_range,l_range(icurr_l),p1_range(icurr_p1),dc_range(icurr_dc),E_x,E_spectrum,materials{m1_range(icurr_m1)},t1_range(icurr_t1));
+                    
+[E_spectrum,E_x] = EspectrumGauss(E_range(imax_E), sig_E, n,E_range(imax_E)-3*sig_E,E_range(imax_E)+3*sig_E);
+[vis_max,amp_max,carpet_max] = carpet_sim(sim_d_range,l_range(imax_l),p1_range(imax_p1),dc_range(imax_dc),E_x,E_spectrum,materials{m1_range(imax_m1)},t1_range(imax_t1));
 
+y_axis_curr = (-(size(carpet_curr,1)/2):(size(carpet_curr,1)/2)-1)*1e6/(50/p1_range(icurr_p1));
+figure, imagesc(sim_d_range,y_axis_curr,carpet_curr,[0 2.5]), colormap gray
+hold on
+vline(sim_d_range(inewcurr_d),'r-')
+ylim([-12.5 12.5])
+xlabel('$d$ [m]','Interpreter','latex')
+ylabel('[um]','Interpreter','latex')
+title('Current setup','Interpreter','latex')
 
+y_axis_max = (-(size(carpet_max,1)/2):(size(carpet_max,1)/2)-1)*1e6/(50/p1_range(imax_p1));
+figure, imagesc(sim_d_range,y_axis_max,carpet_max,[0 2.5]), colormap gray
+hold on
+vline(sim_d_range(inewmax_d),'r-')
+ylim([-12.5 12.5])
+xlabel('$d$ [m]','Interpreter','latex')
+ylabel('[um]','Interpreter','latex')
+title('Optimal setup','Interpreter','latex')
 
-
-
-
-
-
-
-
-
-
-
+prof_curr = carpet_curr(:,inewcurr_d);
+prof_max = carpet_max(:,inewmax_d);
+figure, plot(y_axis_curr,prof_curr)
+hold on, title('Current')
+ylim([0 1.4])
+figure, plot(y_axis_max,prof_max)
+hold on, title('Optimized')
+ylim([0 1.4])
 
 
 

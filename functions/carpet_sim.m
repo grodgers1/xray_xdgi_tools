@@ -17,8 +17,8 @@ function [vis,amp,carpet] = carpet_sim(z,d_sg1,p1,dc,E_x,E_spectrum,m1,t1)
 x_pixels = 50;
 % calculate required reptimes
 M = (d_sg1+z)/d_sg1;
-reptimes = ceil(max(M(:)))+1;
-%reptimes = 15;
+%reptimes = ceil(max(M(:)))+1;
+reptimes = 7;
 t2 = 0;
 m2 = 'Au';
 padsize = round(x_pixels*reptimes/2);
