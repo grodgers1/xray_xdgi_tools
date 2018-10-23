@@ -90,6 +90,7 @@ for dis = 1:length(z)
         I(:,:,dis) = temp;
     end
 end
+I(isnan(I))=0;
 I_z = squeeze(sum(I,2)); % incoherently sum different energy contributions
 
 end

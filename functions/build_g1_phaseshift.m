@@ -1,4 +1,4 @@
-function [g1_pattern] = build_g1(m1,m2,t1,t2,dc,E_x,E_spectrum,x_pixels,reptimes)
+function [g1_pattern_phaseshift] = build_g1_phaseshift(m1,m2,t1,t2,dc,E_x,x_pixels,reptimes)
 %BUILD_G1 Builds the complex transmission function for the specified
 %grating
 %   Inputs:
@@ -32,15 +32,15 @@ sb2 = x_pixels-sb1; % size of grating bar material 2 (pixels)
 lambda = lambda_from_E(E_x)';
 k = 2*pi./lambda';
 % run loop over energies, build complex transmission function for each
-g1_pattern = zeros(N,length(E_x)); % complex transmission function
+g1_pattern_phaseshift = zeros(N,length(E_x)); % complex transmission function
 for e = 1:length(E_x)
-    [delta1,beta1] = get_refindex(m1, E_x(e));
-    [delta2,beta2] = get_refindex(m2, E_x(e));
-    tmp1 = E_spectrum(e)*exp(-1i*(delta1-1i*beta1)*k(e)*t1); % projection approximation
-    tmp2 = E_spectrum(e)*exp(-1i*(delta2-1i*beta2)*k(e)*t2);
+    [delta1,~] = get_refindex(m1, E_x(e));
+    [delta2,~] = get_refindex(m2, E_x(e));
+    tmp1 = delta1*k(e)*t1; % projection approximation
+    tmp2 = delta2*k(e)*t2;
     temp = [tmp1*ones(1,sb1) tmp2*ones(1,sb2)]';
     temp = repmat(temp,reptimes,1);
-    g1_pattern(:,e) = temp;
+    g1_pattern_phaseshift(:,e) = temp;
 end
 
 
